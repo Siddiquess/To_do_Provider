@@ -1,22 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:to_do_app/provider/get_datas.dart';
+import 'package:to_do_app/functions/edit_data.dart';
+import 'package:to_do_app/provider/to_do_datas.dart';
+
+import '../functions/submit_data.dart';
 
 class AddPage extends StatelessWidget {
-  AddPage({super.key});
+  final Map? toDo;
+  final bool isEdit;
+  AddPage({
+    super.key,
+    this.toDo,
+    this.isEdit = false,
+  });
 
   final TextEditingController titelController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final item = toDo;
+    if (item != null) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        final title = item['title'];
+        final discription = item['description'];
+        titelController.text = title ?? '';
+        descriptionController.text = discription ?? '';
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Data'),
+        title: Text(isEdit ? 'Edit Data' : 'Add Data'),
         centerTitle: true,
       ),
       body: ListView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         children: [
           TextField(
             controller: titelController,
@@ -36,14 +55,23 @@ class AddPage extends StatelessWidget {
           const SizedBox(
             height: 40,
           ),
-          Consumer<GetDatas>(builder: (context, getData, child) {
+          Consumer<ToDoDatas>(builder: (context, getData, child) {
             return ElevatedButton(
-              onPressed: () => getData.submitData(
-                context,
-                titelController,
-                descriptionController,
-              ),
-              child: const Text('Submit'),
+              onPressed: () {
+                isEdit
+                    ? editData(
+                        context,
+                        titelController,
+                        descriptionController,
+                        toDo,
+                      )
+                    : submitData(
+                        context,
+                        titelController,
+                        descriptionController,
+                      );
+              },
+              child: Text(isEdit ? 'Update' : 'Submit'),
             );
           })
         ],

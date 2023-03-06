@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:to_do_app/screens/add_page.dart';
-import '../provider/get_datas.dart';
+import '../functions/delete_data.dart';
+import '../functions/fetch_data.dart';
+import '../functions/navigation.dart';
+import '../provider/to_do_datas.dart';
 
 class ScreenMain extends StatelessWidget {
   const ScreenMain({super.key});
@@ -10,8 +12,7 @@ class ScreenMain extends StatelessWidget {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
-        Provider.of<GetDatas>(context, listen: false).fetchTodo(context);
-        print('=========================');
+        fetchTodoData(context);
       },
     );
 
@@ -20,48 +21,61 @@ class ScreenMain extends StatelessWidget {
         title: const Text("Todo App"),
         centerTitle: true,
       ),
-      body: Consumer<GetDatas>(
-        builder: (context, getData, child){
-          return ListView.builder(
-            itemCount:getData.items.length,
-            itemBuilder: (context, index) {
-              final items = getData.items;
-              final item = items[index] as Map;
-              return  ListTile(
-                title: Text(item['title']),
-                subtitle: Text(item['description']),
-              );
-            },
+      body: Consumer<ToDoDatas>(
+        builder: (context, getData, child) {
+          return Visibility(
+            visible: getData.isLoading,
+            replacement: RefreshIndicator(
+              onRefresh: () => fetchTodoData(context),
+              child: ListView.builder(
+                itemCount: getData.items.length,
+                itemBuilder: (context, index) {
+                  final items = getData.items;
+                  final item = items[index] as Map;
+                  final id = item['_id'] as String;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      child: Text('${index + 1}'),
+                    ),
+                    title: Text(item['title']),
+                    subtitle: Text(item['description']),
+                    trailing: PopupMenuButton(
+                      onSelected: (value) {
+                        if (value == 'Edit') {
+                          // edit the item and show the changes
+                          Navigate.pageRoutToDoEditData(context,item);
+                        } else if (value == 'Delete') {
+                          // Delete the item and remove from the srcreen
+                          deleteById(id, getData, context);
+                        }
+                      },
+                      itemBuilder: (context) {
+                        return [
+                          const PopupMenuItem(
+                            value: 'Edit',
+                            child: Text('Edit'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'Delete',
+                            child: Text('Delete'),
+                          ),
+                        ];
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            child: const Center(child: CircularProgressIndicator()),
           );
-        }
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          _pageRoutToDoAddData(context);
+          Navigate.pageRoutToDoAddData(context);
         },
         label: const Text('Add Data'),
       ),
     );
   }
-
-  void _pageRoutToDoAddData(context) {
-    final route = MaterialPageRoute(
-      builder: (context) => AddPage(),
-    );
-    Navigator.push(context, route);
-  }
-
-  // Future<void> fetchTodo(context) async {
-  //   const url = 'https://api.nstack.in/v1/todos?page=1&limit=10';
-  //   final uri = Uri.parse(url);
-  //   final response = await http.get(uri);
-
-  //   if (response.statusCode == 200) {
-  //     final json = jsonDecode(response.body) as Map;
-  //     final result = json['items'] as List;
-  //     Provider.of<GetDatas>(context, listen: false).getdatas(result);
-  //   } else {
-  //     print('it is error =================');
-  //   }
-  // }
 }
